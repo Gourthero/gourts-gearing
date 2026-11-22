@@ -48,6 +48,23 @@ header p{max-width:64ch;margin:10px 0 0;color:#d4c8e6}
 .dlbtn small{display:block;font:500 13px/1.3 Inter,system-ui,sans-serif;opacity:.85;margin-top:3px}
 .dlbtn:hover{transform:translateY(2px);box-shadow:0 4px 0 #1f8a1f,0 8px 18px #0006}
 .dlbtn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.feats{list-style:none;padding:0;margin:16px 0 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:8px;max-width:980px}
+.feats li{background:#ffffff0f;border:1px solid #ffffff22;border-radius:10px;padding:10px 12px}
+.feats b{display:block;color:#fff;font-size:15px}.feats span{display:block;font-size:13px;color:#d4c8e6;margin-top:2px}
+.cardbtns{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.swapb{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:8px;padding:6px 10px;font:600 13px Inter,system-ui,sans-serif;cursor:pointer;min-height:36px}
+.mine-tag{font-size:13px;color:var(--epic);font-weight:600}
+.linkb{background:none;border:0;color:var(--rare);text-decoration:underline;font:inherit;font-size:14px;cursor:pointer;padding:4px 0}
+#swapBox{position:fixed;inset:0;background:#000a;z-index:50;display:grid;place-items:center;padding:16px}
+#swapBox[hidden]{display:none}
+.swapin{background:var(--card);color:var(--ink);border-radius:16px;max-width:720px;width:100%;max-height:88vh;overflow:auto;padding:18px 20px;box-shadow:0 20px 60px #0008}
+.swaphd{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.swapin h4{margin:14px 0 6px;font:600 15px Inter,system-ui,sans-serif}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:6px}
+.pick{display:grid;gap:2px;text-align:start;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px 10px;cursor:pointer;font:inherit}
+.pick b{font-size:14px}.pick b.e{color:var(--epic)}.pick b.r{color:var(--rare)}.pick span{font-size:12px;color:var(--mute)}
+.pick.on{border-color:var(--got)}
+.custrow{display:flex;flex-wrap:wrap;gap:6px}.custrow input{flex:1 1 220px;min-height:44px;font-size:16px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--bg);color:var(--ink)}
 .clsrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
 .cbtn{border:2px solid color-mix(in oklab,var(--cc) 45%,transparent);background:#ffffff0d;color:var(--cc);border-radius:10px;padding:8px 14px;font:700 15px Inter,system-ui,sans-serif;cursor:pointer;min-height:44px}
 .cbtn[aria-pressed=true]{background:color-mix(in oklab,var(--cc) 28%,transparent);border-color:var(--cc);color:#fff}
@@ -133,6 +150,15 @@ html{scroll-padding-top:76px}
     <h1>Gourt's Gearing: Pre-Raid BiS for Every Class</h1>
     <p>Pick your class, spec and gear set. Every item is listed easiest first with step-by-step directions, and you tick items off as you get them. Ticks are saved in this browser and shared between sets. Gear lists come from <a href="https://www.wowhead.com/forever" target="_blank" rel="noopener" style="color:#d2a2ff">Wowhead's WoW: Forever BiS guides</a>, and rogue builds from <a href="https://wowrogue.gg" target="_blank" rel="noopener" style="color:#d2a2ff">wowrogue.gg</a>. <a id="srcLink" href="https://www.wowhead.com/forever" target="_blank" rel="noopener" style="color:#d2a2ff">Open this spec's source guide</a>.</p>
     <div class="dlrow"><a class="dlbtn" href="https://gourthero.github.io/gourts-gearing/GourtsGearing.zip" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M11 3h2v10.2l3.6-3.6 1.4 1.4L12 17l-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg><span><b>DOWNLOAD THE ADDON</b><small>Gourt's Gearing for WoW: Forever · unzip into _forever_/Interface/AddOns/ and restart the game</small></span></a></div>
+    <ul class="feats">
+      <li><b>Character sheet</b><span>Your set laid out like the in-game paperdoll, numbered easiest first. Click a slot for its steps.</span></li>
+      <li><b>Follow the arrow</b><span>An on-screen arrow walks you to dungeon entrances, vendors and quest givers, step by step.</span></li>
+      <li><b>Tooltip tags</b><span>Every item tooltip shows which of your class's sets use it, and its number in each.</span></li>
+      <li><b>Bag glow and auto-tick</b><span>Set items glow in your bags and tick themselves off when you loot or equip them.</span></li>
+      <li><b>Every class and spec</b><span>All the sets on this page, plus a "Where it drops" view to plan your dungeon runs.</span></li>
+      <li><b>Swap items</b><span>Not keen on a pick? Swap any slot for an item you prefer, right in game.</span></li>
+      <li><b>BIG GOURT ENERGY</b><span>Loot an item from your set and get a celebration splash, memes and all.</span></li>
+    </ul>
     <div class="clsrow" id="clsBox" role="group" aria-label="Class"></div>
     <div class="specrow" id="specBox" role="group" aria-label="Spec"></div>
     <h2 class="spect" id="specTitle"></h2>
@@ -157,12 +183,13 @@ html{scroll-padding-top:76px}
 
 <nav class="f" aria-label="Views and filters"><div class="views" id="views"></div><div class="scroll" id="chips"></div></nav>
 
+<div id="swapBox" hidden></div>
 <main class="band"><div class="wrap">
   <div class="howto" id="howto">
     <div><h3>1. Run dungeons every day</h3><p>Every level 55+ dungeon boss drops 1 <b>Tarnished Undermine Real</b> the first time you kill it each day. Pix Xizzix in Booty Bay sells strong belts, cloaks, rings and trinkets for every class for Reals.</p></div>
     <div><h3>2. Use "Where it drops"</h3><p>Switch to the <b>Where it drops</b> tab to see every item for your spec grouped by dungeon, quest chain, vendor or craft, so one run can cover several items.</p></div>
     <div><h3>3. Tier 0.5 for everyone</h3><p>Deliana (Ironforge) / Mokvar (Orgrimmar) swap your <b>Tier 0</b> pieces for <b>Tier 0.5</b> at 3 points in the chain: gloves + belt (step 1), boots + legs + shoulders (step 10), helm + chest (last step). Bracers are sold by them for gold.</p></div>
-    <div><h3>4. Get the addon</h3><p>The <b>Gourt's Gearing</b> addon has the same lists in game: a character-sheet view, an arrow to dungeons and vendors, and set tags on item tooltips. <a href="GourtsGearing.zip" style="color:var(--epic);font-weight:600">Download the addon</a>, unzip it into <code>_forever_/Interface/AddOns/</code> and restart the game.</p></div>
+    <div><h3>4. Get the addon</h3><p>The <b>Gourt's Gearing</b> addon has the same lists in game: a character-sheet view, an arrow to dungeons and vendors, and set tags on item tooltips.</p></div>
   </div>
   <div id="main"></div>
 </div></main>
@@ -395,7 +422,7 @@ const TYPE_TIME={drop:'Several runs',quest:'A quest chain',vendor:'One visit (pl
 function itemFor(iid){
  const g=DATA.items[iid];const h=HAND[g.name];
  const side=SLOTS_L.includes(g.slot)?'L':'R';
- if(h)return {...h,iid,slot:g.slot,side,g};
+ if(h){const o={...h,iid,slot:g.slot,side,g};if(g.src.type=='t05'&&g.steps[0]&&/Collect/.test(g.steps[0].h))o.steps=[`<span class="h">${esc(g.steps[0].h)}</span>${esc(g.steps[0].t)}`,...h.steps.slice(1)];return o}
  const steps=g.steps.map(s=>`<span class="h">${esc(s.h)}</span>${esc(s.t)}`);
  const grp=g.src.type=='drop'?((g.src.drops[0]||{}).dungeon?'Dungeon group':'Group'):(g.src.type=='t05'?'Group for the dungeons':'Solo');
  return {tier:D2T[g.diff]||'hard',slot:g.slot,side,name:g.name,q:g.q>=4?'e':'r',il:'',link:'https://www.wowhead.com/forever/item='+iid,time:TYPE_TIME[g.src.type]||'',group:grp,cost:g.cost,steps,tip:g.tips&&g.tips[0],warn:g.src.type=='raid'?`<b>Raid item:</b> ${esc(g.src.raid)} is raid content. Wowhead still lists it, so it is shown here for completeness.`:(g.src.type=='unknown'?'<b>Source not confirmed.</b> Check the item on Wowhead.':null),iid,g};
@@ -403,12 +430,22 @@ function itemFor(iid){
 const TORD=['easy','medium','hard','veryhard','unconfirmed'];
 const SO=[...SLOTS_L,...SLOTS_R];
 function curSpec(){return DATA.specs.find(s=>s.key==spec)||DATA.specs[0]}
+let CUST={};try{CUST=JSON.parse(ls('gg-custom')||'{}')}catch(e){}
+const saveCust=()=>ls('gg-custom',JSON.stringify(CUST));
+function customItem(ref,slot){
+ if(ref.id&&DATA.items[ref.id])return itemFor(ref.id);
+ const nm=ref.name||('Item '+ref.id);
+ return {tier:'hard',slot,side:SLOTS_L.includes(slot)?'L':'R',name:nm,q:'r',il:'',link:'https://www.wowhead.com/forever/item='+ref.id,time:'Your pick',group:'?',cost:'?',
+  steps:[`<span class="h">Your own pick</span>There is no step-by-step guide for ${esc(nm)} yet. Open it on <a href="https://www.wowhead.com/forever/item=${ref.id}" target="_blank" rel="noopener">Wowhead</a> or <a href="https://www.foreverdb.app/en/forever/items/${ref.id}" target="_blank" rel="noopener">ForeverDB</a> and check the "Dropped by", "Reward from" or "Sold by" tabs.`],
+  iid:ref.id,custom:true};
+}
 function applySet(){
  const sp=curSpec();spec=sp.key;cls=sp.cls;
  if(!sp.sets.length){I=[];return}
  if(!sp.sets.some(s=>s.key==set))set=sp.sets[0].key;
  const st=sp.sets.find(s=>s.key==set);
- I=st.items.filter(x=>DATA.items[x]).map(itemFor).map((it,ix)=>({...it,ix})).sort((a,b)=>TORD.indexOf(a.tier)-TORD.indexOf(b.tier)||a.ix-b.ix);
+ const ov=CUST[set]||{};
+ I=st.items.map((x,ix)=>{const slot=(DATA.items[x]||{}).slot;const it=ov[ix]?customItem(ov[ix],slot):(DATA.items[x]?itemFor(x):null);return it&&{...it,ix,slotIx:ix,swapped:!!ov[ix],orig:x}}).filter(Boolean).sort((a,b)=>TORD.indexOf(a.tier)-TORD.indexOf(b.tier)||a.ix-b.ix);
  I.forEach((it,i)=>it.n=i+1);
  ls('gg-cls',cls);ls('gg-spec',spec);ls('gg-set2',set);
 }
@@ -416,7 +453,8 @@ const ord=(a,b,S)=>S.indexOf(a.slot)-S.indexOf(b.slot)||a.n-b.n;
 const slotBtn=it=>`<button class="slot${done.has(id(it))?' done':''}" type="button" data-go="${id(it)}"><span class="n">#${it.n}</span><span class="sl">${it.slot}</span><span class="nm ${it.q}">${esc(it.name)}</span><span class="ck"></span></button>`;
 const card=it=>{const t=TIERS.find(x=>x.id==it.tier),d=done.has(id(it));return `<article class="card${d?' done':''}" id="${id(it)}">
  <div class="top"><div class="num">${it.n}</div><div class="tt"><h3 class="${it.q}">${esc(it.name)}</h3><div class="meta">${it.slot}${it.il?' · item level '+it.il:''} · <a href="${it.link}" target="_blank" rel="noopener">Wowhead</a> · <a href="https://www.foreverdb.app/en/forever/items/${it.iid}" target="_blank" rel="noopener">ForeverDB</a></div></div>
- <label><input type="checkbox" data-id="${id(it)}"${d?' checked':''}> Got it</label></div>
+ <div class="cardbtns"><button type="button" class="swapb" data-swap="${it.slotIx}">Swap item</button><label><input type="checkbox" data-id="${id(it)}"${d?' checked':''}> Got it</label></div></div>
+ ${it.swapped?'<div class="mine-tag">Your swap · <button type="button" class="linkb" data-unswap="'+it.slotIx+'">put the guide\'s item back</button></div>':''}
  <div class="facts"><span>Difficulty <b class="dots">${t.dots?'●'.repeat(t.dots)+'○'.repeat(4-t.dots):'?'}</b></span><span>Time <b>${esc(it.time)}</b></span><span>Group <b>${esc(it.group)}</b></span><span>Cost <b>${esc(it.cost)}</b></span></div>
  ${d?`<details><summary>Show the steps again</summary><ol class="steps">${it.steps.map(s=>`<li><div>${s}</div></li>`).join('')}</ol></details>`:`<ol class="steps">${it.steps.map(s=>`<li><div>${s}</div></li>`).join('')}</ol>`}
  ${it.tip?`<div class="tip"><b>Tip:</b> ${it.tip}</div>`:''}
@@ -433,6 +471,24 @@ function renderSources(){
  return '<div class="srcgrid">'+groups.map(gr=>{const mine=gr.rows.filter(r=>mineSet.has(r.x)).length;return `<section class="sg${mine?' mine':''}"><h3>${esc(gr.n)}</h3>${gr.w?`<div class="wh">${esc(gr.w)}</div>`:''}${mine?`<div class="cnt">${mine} in your current set</div>`:''}
  ${gr.rows.map(({x,dt})=>{const g=DATA.items[x];const nm={name:g.name};const dn=done.has(id(nm));return `<div class="srow${dn?' got':''}"><input type="checkbox" data-id="${id(nm)}"${dn?' checked':''} aria-label="Got ${esc(g.name)}"><div><a class="nm ${g.q>=4?'e':'r'}" href="#${id(nm)}" data-open="${x}">${esc(g.name)}</a> <span class="dt">· ${g.slot}</span><div class="dt">${esc(dt)}</div><div class="badges">${sp.sets.filter(s=>s.items.includes(x)).map(s=>`<span class="badge${s.key==set?' on':''}">${esc(s.name)}</span>`).join('')}</div></div></div>`}).join('')}</section>`}).join('')+'</div>';
 }
+function openSwap(ix){
+ const sp=curSpec();const st=sp.sets.find(s=>s.key==set);const orig=st.items[ix];const slot=DATA.items[orig].slot;
+ const cur=I.find(i=>i.slotIx==ix);
+ const alts=((st.alts||{})[slot]||[]).filter(x=>DATA.items[x]);
+ const others=Object.entries(DATA.items).filter(([k,g])=>g.slot==slot&&(g.classes||[]).includes(cls)&&!alts.includes(+k)).map(([k])=>+k).sort((a,b)=>DATA.items[a].diff-DATA.items[b].diff);
+ const opt=x=>{const g=DATA.items[x];return `<button type="button" class="pick${cur&&cur.iid==x?' on':''}" data-pick="${x}"><b class="${g.q>=4?'e':'r'}">${esc(g.name)}</b><span>${esc(g.where)}</span></button>`};
+ const box=document.getElementById('swapBox');
+ box.innerHTML=`<div class="swapin" role="dialog" aria-label="Swap ${slot}"><div class="swaphd"><h3>Swap your ${slot.toLowerCase()}</h3><button type="button" class="linkb" data-close="1">Close</button></div>
+ <p class="dt">Guide's pick: <b>${esc(DATA.items[orig].name)}</b>. Choose something else for this slot and the walkthrough follows your choice.</p>
+ ${alts.length?`<h4>Suggested alternatives</h4><div class="picks">${alts.map(opt).join('')}</div>`:''}
+ ${others.length?`<h4>Other ${CLS[cls][0]} items for this slot (with guides)</h4><div class="picks">${others.slice(0,24).map(opt).join('')}</div>`:''}
+ <h4>Anything else</h4><p class="dt">Paste a Wowhead item link (or an item ID). Items without a guide get links to Wowhead and ForeverDB.</p>
+ <div class="custrow"><input id="custIn" type="text" placeholder="https://www.wowhead.com/forever/item=12345/item-name" aria-label="Wowhead link or item ID"><input id="custName" type="text" placeholder="Item name (optional)" aria-label="Item name"><button type="button" class="chip" data-custom="${ix}">Use this item</button></div>
+ <p class="dt" id="custMsg"></p>
+ <button type="button" class="linkb" data-unswap="${ix}">Use the guide's item again</button></div>`;
+ box.dataset.ix=ix;box.hidden=false;
+}
+function setSwap(ix,ref){CUST[set]=CUST[set]||{};if(ref)CUST[set][ix]=ref;else delete CUST[set][ix];saveCust();applySet();render();document.getElementById('swapBox').hidden=true}
 function render(){
  const sp=curSpec();
  document.getElementById('clsBox').innerHTML=Object.entries(CLS).map(([k,[n,c]])=>`<button type="button" class="cbtn" data-cls="${k}" aria-pressed="${k==cls}" style="--cc:${c}">${n}</button>`).join('');
@@ -472,6 +528,14 @@ document.addEventListener('click',e=>{
   view='walk';filter='all';render();const el=document.getElementById(id(DATA.items[x]));if(el)el.scrollIntoView({behavior:'smooth',block:'start'});return}
  const f=e.target.closest('[data-f]');if(f){filter=f.dataset.f;render();return}
  const g=e.target.closest('[data-go]');if(g){e.preventDefault();filter='all';view='walk';render();const el=document.getElementById(g.dataset.go);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});const inp=el.querySelector('input');if(inp)inp.focus({preventScroll:true})}return}
+ const sw=e.target.closest('[data-swap]');if(sw){openSwap(+sw.dataset.swap);return}
+ if(e.target.closest('[data-close]')||e.target.id=='swapBox'){document.getElementById('swapBox').hidden=true;return}
+ const pk=e.target.closest('[data-pick]');if(pk){const ix=+document.getElementById('swapBox').dataset.ix;setSwap(ix,{id:+pk.dataset.pick,name:DATA.items[pk.dataset.pick].name});return}
+ const us=e.target.closest('[data-unswap]');if(us){setSwap(+us.dataset.unswap,null);return}
+ const cu=e.target.closest('[data-custom]');if(cu){const v=document.getElementById('custIn').value.trim();const m=v.match(/item=(\d+)(?:\/([a-z0-9-]+))?/i)||v.match(/^(\d+)$/);
+  if(!m){document.getElementById('custMsg').textContent='That does not look like a Wowhead item link or item ID.';return}
+  const nid=+m[1];let nm=document.getElementById('custName').value.trim();if(!nm&&DATA.items[nid])nm=DATA.items[nid].name;if(!nm&&m[2])nm=m[2].split('-').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
+  setSwap(+cu.dataset.custom,{id:nid,name:nm||('Item '+nid)});return}
  if(e.target.id=='reset'){if(confirmReset()){done.clear();save();render()}}
 });
 function confirmReset(){const b=document.getElementById('reset');if(b.dataset.arm){delete b.dataset.arm;b.textContent='Clear all ticks';return true}b.dataset.arm='1';b.textContent='Click again to clear';setTimeout(()=>{delete b.dataset.arm;b.textContent='Clear all ticks'},3000);return false}
