@@ -65,6 +65,7 @@ header p{max-width:64ch;margin:10px 0 0;color:#d4c8e6}
 .pick b{font-size:14px}.pick b.e{color:var(--epic)}.pick b.r{color:var(--rare)}.pick span{font-size:12px;color:var(--mute)}
 .pick.on{border-color:var(--got)}
 .custrow{display:flex;flex-wrap:wrap;gap:6px}.custrow input{flex:1 1 220px;min-height:44px;font-size:16px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--bg);color:var(--ink)}
+.codebox{margin:10px 0 0;max-width:980px}.codebox summary{cursor:pointer;font-weight:600;padding:6px 0}.codebox .custrow{margin:6px 0}
 .clsrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
 .cbtn{border:2px solid color-mix(in oklab,var(--cc) 45%,transparent);background:#ffffff0d;color:var(--cc);border-radius:10px;padding:8px 14px;font:700 15px Inter,system-ui,sans-serif;cursor:pointer;min-height:44px}
 .cbtn[aria-pressed=true]{background:color-mix(in oklab,var(--cc) 28%,transparent);border-color:var(--cc);color:#fff}
@@ -156,13 +157,26 @@ html{scroll-padding-top:76px}
       <li><b>Tooltip tags</b><span>Every item tooltip shows which of your class's sets use it, and its number in each.</span></li>
       <li><b>Bag glow and auto-tick</b><span>Set items glow in your bags and tick themselves off when you loot or equip them.</span></li>
       <li><b>Every class and spec</b><span>All the sets on this page, plus a "Where it drops" view to plan your dungeon runs.</span></li>
-      <li><b>Swap items</b><span>Not keen on a pick? Swap any slot for an item you prefer, right in game.</span></li>
-      <li><b>BIG GOURT ENERGY</b><span>Loot an item from your set and get a celebration splash, memes and all.</span></li>
+      <li><b>Swap items</b><span>Not keen on a pick? Swap any slot for an item you prefer, then share it with a swap code.</span></li>
+      <li><b>Guild progress</b><span>See what your guildmates still need, and their Gourt rank on their tooltip.</span></li>
+      <li><b>"Needed by" on loot</b><span>Loot rolls and drops tell your group who has that item on their list.</span></li>
+      <li><b>Dungeon planner</b><span>Ranks dungeons by how many items you and your group still need, boss by boss.</span></li>
+      <li><b>Dungeon reminders</b><span>Zone in and get a list of what to look out for in there.</span></li>
+      <li><b>Gear check</b><span>Arrows on your character sheet show which slots your set can upgrade, plus your % Big Gourt.</span></li>
+      <li><b>Auction House alerts</b><span>BoE pieces from your set get highlighted when they're listed.</span></li>
+      <li><b>Crafting materials</b><span>Have/need counts from your bags and bank for every crafted piece.</span></li>
+      <li><b>BIG GOURT ENERGY</b><span>Loot a set item for a surprise meme and sound. Wipe and Raze gets the blame.</span></li>
     </ul>
     <div class="clsrow" id="clsBox" role="group" aria-label="Class"></div>
     <div class="specrow" id="specBox" role="group" aria-label="Spec"></div>
     <h2 class="spect" id="specTitle"></h2>
     <div class="sets" role="group" aria-label="Gear set" id="setsBox"></div>
+    <details class="codebox"><summary>Swap code: share your swaps or move them to the addon</summary>
+      <p class="dt">Copy this code into the addon (<b>/gp import</b>) or give it to a friend. Paste a code from the addon (<b>/gp export</b>) or a friend below to load it.</p>
+      <div class="custrow"><input id="codeOut" type="text" readonly aria-label="Your swap code"><button type="button" class="chip" id="codeCopy">Copy</button></div>
+      <div class="custrow"><input id="codeIn" type="text" placeholder="GG1;warrior/protection:balanced;3=12345" aria-label="Paste a swap code"><button type="button" class="chip" id="codeLoad">Load code</button></div>
+      <p class="dt" id="codeMsg" role="status"></p>
+    </details>
     <div class="board">
       <div class="col" id="colL"></div>
       <div class="mid">
@@ -488,6 +502,12 @@ function openSwap(ix){
  <button type="button" class="linkb" data-unswap="${ix}">Use the guide's item again</button></div>`;
  box.dataset.ix=ix;box.hidden=false;
 }
+function exportCode(){const ov=CUST[set]||{};return 'GG1;'+set+';'+Object.keys(ov).map(Number).sort((a,b)=>a-b).map(ix=>(ix+1)+'='+ov[ix].id).join(',')}
+function importCode(code){const m=(code||'').trim().match(/^GG1;([^;]+);(.*)$/);if(!m)return "That is not a Gourt's Gearing swap code (they start with GG1;).";
+ const sp=DATA.specs.find(s=>s.sets.some(t=>t.key==m[1]));if(!sp)return 'This code is for a set this page does not know: '+m[1];
+ const st=sp.sets.find(t=>t.key==m[1]);const ov={};let n=0;
+ for(const [,p,id] of m[2].matchAll(/(\d+)=(\d+)/g)){const ix=+p-1;if(ix<0||ix>=st.items.length)continue;ov[ix]={id:+id,name:(DATA.items[id]||{}).name||('Item '+id)};n++}
+ CUST[m[1]]=ov;saveCust();cls=sp.cls;spec=sp.key;set=m[1];applySet();render();return ''+n}
 function setSwap(ix,ref){CUST[set]=CUST[set]||{};if(ref)CUST[set][ix]=ref;else delete CUST[set][ix];saveCust();applySet();render();document.getElementById('swapBox').hidden=true}
 function render(){
  const sp=curSpec();
@@ -495,6 +515,7 @@ function render(){
  document.getElementById('specBox').innerHTML=DATA.specs.filter(s=>s.cls==cls).map(s=>`<button type="button" class="chip" data-spec="${s.key}" aria-pressed="${s.key==spec}">${esc(s.spec)} <span style="opacity:.7">· ${s.role}</span></button>`).join('');
  document.getElementById('setsBox').innerHTML=sp.sets.length?sp.sets.map(s=>`<button type="button" class="setb" data-set="${s.key}" aria-pressed="${s.key==set}"><b>${esc(s.name)}</b><span>${esc((s.desc||'').slice(0,110))}${(s.desc||'').length>110?'…':''}</span></button>`).join(''):`<p>Wowhead's ${esc(sp.spec)} page has no gear list yet. Check back later.</p>`;
  document.getElementById('specTitle').textContent=CLS[cls][0]+' · '+sp.spec;
+ document.getElementById('codeOut').value=exportCode();
  document.getElementById('srcLink').href=sp.url;
  document.getElementById('colL').innerHTML=I.filter(i=>i.side=='L').sort((a,b)=>ord(a,b,SLOTS_L)).map(slotBtn).join('');
  document.getElementById('colR').innerHTML=I.filter(i=>i.side=='R').sort((a,b)=>ord(a,b,SLOTS_R)).map(slotBtn).join('');
@@ -536,6 +557,8 @@ document.addEventListener('click',e=>{
   if(!m){document.getElementById('custMsg').textContent='That does not look like a Wowhead item link or item ID.';return}
   const nid=+m[1];let nm=document.getElementById('custName').value.trim();if(!nm&&DATA.items[nid])nm=DATA.items[nid].name;if(!nm&&m[2])nm=m[2].split('-').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
   setSwap(+cu.dataset.custom,{id:nid,name:nm||('Item '+nid)});return}
+ if(e.target.id=='codeCopy'){const o=document.getElementById('codeOut');o.select();(navigator.clipboard?navigator.clipboard.writeText(o.value):Promise.reject()).then(()=>document.getElementById('codeMsg').textContent='Copied.',()=>{document.execCommand('copy');document.getElementById('codeMsg').textContent='Copied.'});return}
+ if(e.target.id=='codeLoad'){const r=importCode(document.getElementById('codeIn').value);document.getElementById('codeMsg').textContent=/^\d+$/.test(r)?'Loaded '+r+' swap(s) for '+curSpec().sets.find(t=>t.key==set).name+'.':r;return}
  if(e.target.id=='reset'){if(confirmReset()){done.clear();save();render()}}
 });
 function confirmReset(){const b=document.getElementById('reset');if(b.dataset.arm){delete b.dataset.arm;b.textContent='Clear all ticks';return true}b.dataset.arm='1';b.textContent='Click again to clear';setTimeout(()=>{delete b.dataset.arm;b.textContent='Clear all ticks'},3000);return false}
