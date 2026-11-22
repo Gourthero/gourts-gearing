@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gourt's Gearing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a patient guildmate walking you through it, one step at a time.
+   IDEA: a quest log ordered easiest to hardest, each entry a numbered walkthrough.
+   PICTURE: the character pane as a live progress board, every slot lighting up as you get it.
+   COLOUR and TYPE: epic-purple band, rare blue support, stat green for "done"; Cinzel titles, Inter text.
+   LAYOUT: board, "how this works" strip, difficulty chips, then numbered walkthrough cards. */
+:root{color-scheme:light dark;
+--bg:light-dark(#f4f4f7,#121318);--card:light-dark(#ffffff,#1b1d24);--ink:light-dark(#17181d,#ecebf2);--mute:light-dark(#5b5d68,#a4a5b3);
+--line:light-dark(#e1e1e8,#2b2d37);--band:#24123b;--bandink:#f2ecfb;--soft:light-dark(#f6f2fc,#221a2e);
+--epic:light-dark(#8a2be2,#c07cff);--rare:light-dark(#0062c4,#4aa3ff);--got:light-dark(#178a1a,#3ddc3d);--warn:light-dark(#a35d00,#ffc25a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:Cinzel,Georgia,serif;line-height:1.1;text-wrap:balance;margin:0}
+a{color:var(--rare)}
+.band{padding:clamp(28px,4vw,56px) max(5vw,16px)}
+.wrap{max-width:1100px;margin:0 auto}
+header.band{background:var(--band);color:var(--bandink);padding-bottom:clamp(24px,3vw,40px)}
+header h1{font-size:clamp(30px,4.6vw,48px)}
+header p{max-width:64ch;margin:10px 0 0;color:#d4c8e6}
+.board{display:grid;grid-template-columns:minmax(0,1fr) 220px minmax(0,1fr);gap:14px;margin-top:26px;align-items:start}
+.col{display:grid;gap:8px}
+.slot{display:flex;gap:10px;align-items:center;background:#ffffff10;border:1px solid #ffffff22;border-radius:10px;padding:8px 10px;cursor:pointer;color:inherit;font:inherit;text-align:start;min-height:48px;width:100%}
+.slot:hover{background:#ffffff1c}.slot:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.slot .n{font-size:13px;color:#b9a9d3;width:26px;flex:none;font-weight:600}
+.slot .sl{font-size:13px;color:#b9a9d3;width:58px;flex:none}
+.slot .nm{font-weight:600;font-size:14px;flex:1}
+.slot .nm.e{color:#d2a2ff}.slot .nm.r{color:#7dbdff}
+.slot .ck{width:22px;height:22px;border-radius:50%;border:2px solid #ffffff55;flex:none;display:grid;place-items:center;font-size:13px}
+.slot.done{border-color:#3ddc3d88;background:#3ddc3d18}.slot.done .ck{background:#3ddc3d;border-color:#3ddc3d;color:#0b1a0b}
+.slot.done .ck::after{content:"✓";font-weight:700}
+.mid{display:grid;justify-items:center;gap:10px;text-align:center;padding-top:6px}
+.ring{width:170px;height:170px}.ring text{fill:#fff;font-family:Cinzel,serif}
+.totals{font-size:14px;color:#d4c8e6;display:grid;gap:4px}.totals b{color:#fff;white-space:nowrap}
+.next{font-size:14px;color:#fff;background:#ffffff14;border-radius:10px;padding:8px 12px;max-width:220px}
+.btn{background:none;border:1px solid #ffffff44;color:#e8def6;border-radius:8px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer;min-height:44px}
+.clsrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.cbtn{border:2px solid color-mix(in oklab,var(--cc) 45%,transparent);background:#ffffff0d;color:var(--cc);border-radius:10px;padding:8px 14px;font:700 15px Inter,system-ui,sans-serif;cursor:pointer;min-height:44px}
+.cbtn[aria-pressed=true]{background:color-mix(in oklab,var(--cc) 28%,transparent);border-color:var(--cc);color:#fff}
+.cbtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.specrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.specrow .chip{background:#ffffff10;color:#f2ecfb;border-color:#ffffff33}
+.specrow .chip[aria-pressed=true]{background:#f2ecfb;color:#24123b}
+.spect{font-size:clamp(20px,2.6vw,26px);margin-top:20px;color:#fff}
+.sets{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;margin-top:20px;max-width:960px}
+.setb{display:grid;gap:2px;text-align:start;border:2px solid #ffffff33;background:#ffffff0d;color:#f2ecfb;border-radius:12px;padding:12px 14px;font:inherit;cursor:pointer;min-height:44px}
+.setb b{font-family:Cinzel,Georgia,serif;font-size:18px}.setb span{font-size:13px;color:#c9bcdd}
+.setb[aria-pressed=true]{border-color:#3ddc3d;background:#3ddc3d1f}.setb:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.howto{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px;margin-bottom:30px}
+.howto div{background:var(--soft);border-radius:14px;padding:14px 16px}
+.howto h3{font-size:18px;margin-bottom:6px}
+.howto p{margin:0;font-size:15px}
+nav.f{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+nav .scroll{display:flex;gap:8px;padding:10px max(5vw,16px);max-width:1180px;margin:0 auto}
+.views{display:flex;gap:8px;padding:12px max(5vw,16px) 0;max-width:1180px;margin:0 auto}
+.vbtn{flex:1;max-width:260px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:10px 14px;font:600 15px Inter,system-ui,sans-serif;cursor:pointer;min-height:44px}
+.vbtn[aria-pressed=true]{border-color:var(--epic);background:var(--soft);color:var(--epic)}
+.vbtn:focus-visible{outline:2px solid var(--rare);outline-offset:2px}
+.srcgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:14px}
+.sg{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:8px;align-content:start}
+.sg.mine{border-color:var(--epic)}
+.sg h3{font-size:20px}.sg .wh{font-size:14px;color:var(--mute);margin-top:-4px}
+.sg .cnt{font-size:13px;font-weight:600;color:var(--epic)}
+.srow{display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 10px;align-items:start;padding:8px 0;border-top:1px solid var(--line)}
+.srow input{width:22px;height:22px;margin:2px 0 0;accent-color:var(--got);cursor:pointer}
+.srow .nm{font-weight:600}.srow .nm.e{color:var(--epic)}.srow .nm.r{color:var(--rare)}
+.srow a.nm{text-decoration:none}.srow a.nm:hover{text-decoration:underline}
+.srow .dt{font-size:14px;color:var(--mute)}
+.srow.got .nm{text-decoration:line-through;opacity:.6}
+.badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.badge{font-size:12px;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--mute);white-space:nowrap}
+.badge.on{border-color:var(--epic);color:var(--epic);font-weight:600}
+.chip.tog[aria-pressed=true]{background:var(--epic);border-color:var(--epic);color:#fff}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:10px 16px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;min-height:44px;white-space:nowrap}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip:focus-visible,.top input:focus-visible{outline:2px solid var(--rare);outline-offset:2px}
+.tier{margin:34px 0 14px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.tier h2{font-size:clamp(24px,3vw,32px)}.tier span{color:var(--mute);font-size:15px}
+.list{display:grid;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;display:grid;gap:12px}
+.card.done{border-color:var(--got);opacity:.8}
+.top{display:flex;gap:14px;align-items:flex-start}
+.num{flex:none;width:44px;height:44px;border-radius:50%;background:var(--band);color:#fff;display:grid;place-items:center;font:700 18px Cinzel,serif}
+.card.done .num{background:var(--got);color:#08160a}
+.tt{flex:1}
+.card h3{font-size:22px}.card h3.e{color:var(--epic)}.card h3.r{color:var(--rare)}
+.meta{font-size:14px;color:var(--mute);margin-top:4px}
+.top label{display:flex;gap:8px;align-items:center;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;min-height:44px}
+.top input{width:24px;height:24px;margin:0;accent-color:var(--got);cursor:pointer}
+.facts{display:flex;flex-wrap:wrap;gap:8px}
+.facts span{font-size:13px;border:1px solid var(--line);border-radius:8px;padding:4px 10px}
+.facts b{font-weight:600}
+.dots{letter-spacing:2px;color:var(--epic)}
+.steps{margin:0;padding:0;list-style:none;display:grid;gap:0;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.steps li::before{content:counter(s);width:26px;height:26px;border-radius:50%;border:2px solid var(--rare);color:var(--rare);display:grid;place-items:center;font-size:13px;font-weight:700}
+.steps b{font-weight:600}
+.steps .h{display:block;font-weight:600;margin-bottom:2px}
+details{border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;font-weight:600;min-height:32px}
+.tip{font-size:15px;background:var(--soft);border-radius:10px;padding:10px 14px}
+.tip b{color:var(--epic)}
+.warn{font-size:15px;border:1px solid var(--warn);border-radius:10px;padding:10px 14px}
+.warn b{color:var(--warn)}
+.mats{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.mats span{font-size:13px;border:1px solid var(--line);border-radius:6px;padding:2px 8px;white-space:nowrap}
+footer{color:var(--mute);font-size:13px;border-top:1px solid var(--line)}
+footer p{max-width:80ch;margin:0 0 6px}
+html{scroll-padding-top:76px}
+.scroll{overflow-x:auto}
+@media(max-width:860px){.board{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.mid{grid-column:1/-1;grid-row:1;grid-template-columns:auto 1fr;justify-items:start;text-align:start;align-items:center}.ring{width:130px;height:130px}.next{max-width:none}}
+@media(max-width:600px){.board{grid-template-columns:minmax(0,1fr)}.mid{grid-template-columns:1fr;justify-items:center;text-align:center}.top{flex-wrap:wrap}.top label{width:100%}.card{padding:16px}}
+@media(prefers-reduced-motion:no-preference){.ring circle.p{transition:stroke-dashoffset .5s ease}}
+</style>
+</head>
+<body>
+<header class="band">
+  <div class="wrap">
+    <h1>Gourt's Gearing: Pre-Raid BiS for Every Class</h1>
+    <p>Pick your class, spec and gear set. Every item is listed easiest first with step-by-step directions, and you tick items off as you get them. Ticks are saved in this browser and shared between sets. Gear lists come from <a id="srcLink" href="https://www.wowhead.com/forever" target="_blank" rel="noopener" style="color:#d2a2ff">Wowhead's WoW: Forever BiS guides</a>.</p>
+    <div class="clsrow" id="clsBox" role="group" aria-label="Class"></div>
+    <div class="specrow" id="specBox" role="group" aria-label="Spec"></div>
+    <h2 class="spect" id="specTitle"></h2>
+    <div class="sets" role="group" aria-label="Gear set" id="setsBox"></div>
+    <div class="board">
+      <div class="col" id="colL"></div>
+      <div class="mid">
+        <svg class="ring" viewBox="0 0 120 120" aria-label="Progress">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#ffffff22" stroke-width="10"/>
+          <circle class="p" id="ringP" cx="60" cy="60" r="50" fill="none" stroke="#3ddc3d" stroke-width="10" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+          <text id="ringT" x="60" y="62" text-anchor="middle" font-size="26" font-weight="700">0/17</text>
+          <text x="60" y="82" text-anchor="middle" font-size="10" fill="#d4c8e6">items collected</text>
+        </svg>
+        <div class="totals" id="totals"></div>
+        <div class="next" id="next"></div>
+        <button class="btn" id="reset" type="button">Clear all ticks</button>
+      </div>
+      <div class="col" id="colR"></div>
+    </div>
+  </div>
+</header>
+
+<nav class="f" aria-label="Views and filters"><div class="views" id="views"></div><div class="scroll" id="chips"></div></nav>
+
+<main class="band"><div class="wrap">
+  <div class="howto" id="howto">
+    <div><h3>1. Run dungeons every day</h3><p>Every level 55+ dungeon boss drops 1 <b>Tarnished Undermine Real</b> the first time you kill it each day. Pix Xizzix in Booty Bay sells strong belts, cloaks, rings and trinkets for every class for Reals.</p></div>
+    <div><h3>2. Use "Where it drops"</h3><p>Switch to the <b>Where it drops</b> tab to see every item for your spec grouped by dungeon, quest chain, vendor or craft, so one run can cover several items.</p></div>
+    <div><h3>3. Tier 0.5 for everyone</h3><p>Deliana (Ironforge) / Mokvar (Orgrimmar) swap your <b>Tier 0</b> pieces for <b>Tier 0.5</b> at 3 points in the chain: gloves + belt (step 1), boots + legs + shoulders (step 10), helm + chest (last step). Bracers are sold by them for gold.</p></div>
+    <div><h3>4. Get the addon</h3><p>The <b>Gourt's Gearing</b> addon has the same lists in game: a character-sheet view, an arrow to dungeons and vendors, and set tags on item tooltips. <a href="GourtsGearing.zip" style="color:var(--epic);font-weight:600">Download the addon</a>, unzip it into <code>_forever_/Interface/AddOns/</code> and restart the game.</p></div>
+  </div>
+  <div id="main"></div>
+</div></main>
+
+<footer class="band"><div class="wrap">
+  <p>Sources: ForeverDB, Wowhead (Forever), Polestar's Mount Hyjal route and WoW: Forever guide sites, checked 20 November 2026 (client build 1.60.1). Forever is still being patched, so drop rates, prices and Real costs can change. Steps marked "from original Classic" haven't been confirmed for Forever yet.</p>
+  <p>Enchants (Crusader, +100 HP, etc.) are not covered.</p>
+</div></footer>
+
+<script>
+{
+const FDB='https://www.foreverdb.app/en/forever/items/', WH='https://www.wowhead.com/forever/item=';
+const PIX='<span class="h">Go to Pix Xizzix in Booty Bay</span>Alliance: fly from Stormwind to Booty Bay. Horde: fly to Booty Bay, or take the boat from Ratchet. Pix Xizzix (the Undermine Trader) is at <b>28.4, 75.8</b> in Stranglethorn Vale, on the harbour.';
+const REALS=n=>`<span class="h">Collect ${n} Tarnished Undermine Reals</span>Kill level 55+ dungeon bosses: Blackrock Depths, Blackrock Spire, Dire Maul, Stratholme, Scholomance or the Shaper's Terrace. Each boss gives 1 Real per day. A full Blackrock Depths clear is about 10 Reals.`;
+const TIERS=[
+ {id:'easy',name:'Easy',dots:1,sub:'Gold or a bit of daily farming. No hard group content.'},
+ {id:'medium',name:'Medium',dots:2,sub:'A week or so of daily dungeons, or one long quest chain.'},
+ {id:'hard',name:'Hard',dots:3,sub:'Rare drops and full dungeon clears. Expect repeat runs.'},
+ {id:'veryhard',name:'Very hard',dots:4,sub:'Long grinds and raid-level dungeons. Save for last.'},
+ {id:'unconfirmed',name:'Not confirmed yet',dots:0,sub:'Nobody has confirmed where these come from yet. Your sim flags them with ⚠ too.'}
+];
+const T05={
+ 1:{tier:'medium',quest:'"Just Compensation" (step 1)',give:'Belt of Valor + Gauntlets of Valor',boxT:'Immoveable Gloves and Belt Set (tank): Handguards + Waistguard of Heroism',boxD:'Unstoppable Gloves and Belt Set (DPS): Gauntlets + Belt of Heroism',how:'This is the very first quest of the chain, so it\'s the quickest Heroism upgrade.'},
+ 2:{tier:'hard',quest:'"Anthion\'s Parting Words" (step 10)',give:'Boots of Valor + Legplates of Valor + Spaulders of Valor',boxT:'Immoveable Boots, Legs and Shoulders Set (tank): Sabatons + Legguards + Pauldrons of Heroism',boxD:'Unstoppable Boots, Legs and Shoulders Set (DPS): Battleboots + Legplates + Spaulders of Heroism',how:'Steps 2–9 first: Anthion\'s ghost at Stratholme, rescue Ysida from Baron Rivendare, Anthion\'s materials, Falrin in Dire Maul (25 Ogre Warbeads, then the enchantment), and the Ring of the Law challenge in Blackrock Depths.'},
+ 3:{tier:'veryhard',quest:'"Saving the Best for Last" (final step)',give:'Helm of Valor + Breastplate of Valor',boxT:'Immoveable Helm and Chestpiece Set (tank): Faceguard + Chestguard of Heroism',boxD:'Unstoppable Helm and Chestpiece Set (DPS): Crown + Breastplate of Heroism',how:'Steps 11–19 first: Bodley in Blackrock Mountain, the Three Kings of Flame, Mor Grayhoof, Bloodkelp from Alcaz Island, Isalien, then summon and kill Lord Valthalak in Upper Blackrock Spire.'}
+};
+const HERO=(slot,side,name,q,il,id,price,stage,which)=>{
+ if(!stage) return {tier:'medium',slot,side,name,q,il,link:WH+id,time:'One visit (if unlocked)',group:'Solo',cost:'~'+price,
+  steps:['<span class="h">Go to Deliana or Mokvar</span>Deliana at The High Seat in <b>Ironforge</b> (Alliance), or Mokvar in Grommash Hold, <b>Orgrimmar</b> (Horde). They run the Tier 0.5 chain.',
+  '<span class="h">Buy '+name+'</span>Wowhead lists it as sold by them for about <b>'+price+'</b> (less with reputation). None of the three turn-in boxes contains bracers, so this is the only listed source.'],
+  warn:'<b>Check in game:</b> the vendor may only offer it once you\'ve started (or finished part of) the Tier 0.5 chain.'};
+ const st=T05[stage];
+ return {tier:st.tier,slot,side,name,q,il,link:WH+id,time:'Tier 0.5 chain, stage '+stage+' of 3',group:'Group for the dungeons',cost:'Valor pieces',
+  steps:['<span class="h">Collect the Valor pieces</span>You hand in: <b>'+st.give+'</b>. These are Tier 0 (Battlegear of Valor) drops from level 60 dungeons.',
+  '<span class="h">Start the chain with Deliana / Mokvar</span>Deliana at The High Seat in <b>Ironforge</b> (Alliance), or Mokvar in Grommash Hold, <b>Orgrimmar</b> (Horde).'+(stage>1?' '+st.how:' '+st.how),
+  '<span class="h">Turn in '+st.quest+'</span>Pick the <b>'+(which=='T'?st.boxT:st.boxD)+'</b>. Right-click the box to open it.',
+  '<span class="h">Want the other version too?</span>Wowhead lists every Heroism version as also sold by Deliana and Mokvar for gold (about '+price+' for this one).']};
+};
+const ALL=[
+ {tier:'easy',slot:'Feet',side:'R',name:"Furbolg Berserker's Boots",q:'r',il:58,link:FDB+'287033',time:'5 minutes if listed',group:'Solo',cost:'Auction House price',
+  steps:['<span class="h">Check the Auction House</span>These boots are <b>Bind on Equip</b>, so other players sell them. Search "Furbolg Berserker". Buying is by far the fastest way.',
+  '<span class="h">If none are listed: go to Blackmaw Hold</span>It\'s a new level 55–60 furbolg dungeon in northern <b>Azshara</b>. The tunnel entrance is at about <b>38.7, 33.4</b> (next to a Meeting Stone), behind the old gate that used to say Timbermaw Hold.',
+  '<span class="h">Farm the furbolgs inside</span>Guides report a drop from Blackmaw furbolgs such as the Blackmaw Devotee, at roughly 1–3%. The bosses also give Reals, so the runs aren\'t wasted.'],
+  tip:'Set an Auction House alert or check daily. Someone will list them before you farm a 3% drop.'},
+ {tier:'easy',slot:'Head',side:'L',name:'Lionheart Helm',q:'e',il:61,link:FDB+'12640',time:'An hour of shopping',group:'Solo',cost:'Expensive (materials)',
+  steps:['<span class="h">Check the Auction House for the helm</span>It\'s <b>Bind on Equip</b>, so you can buy it ready-made.',
+  '<span class="h">Or find a blacksmith with the plans</span>Post in Trade chat: "LF Blacksmith with Lionheart Helm plans, have mats". The plans are a rare world drop, so few people have them.',
+  '<span class="h">Buy the materials</span>Get these from the Auction House:<div class="mats"><span>80 Thorium Bar</span><span>12 Arcanite Bar</span><span>40 Wicked Claw</span><span>10 Blue Sapphire</span><span>4 Azerothian Diamond</span></div>',
+  '<span class="h">Trade the mats to the blacksmith</span>Open a trade window. They craft it and put it in the "will not be traded" slot. Leave a tip.'],
+  tip:'Price the materials before you commit. 12 Arcanite Bars and 4 Azerothian Diamonds make this an expensive helm.'},
+ {tier:'easy',slot:'Back',side:'L',name:'Stalwart Cloak',q:'r',il:65,link:FDB+'272415',time:'2–4 days of dungeons',group:'5-player dungeons',cost:'75 Reals',
+  steps:[REALS(75),PIX,'<span class="h">Buy Stalwart Cloak</span>Talk to Pix and buy it for 75 Reals.'],
+  tip:'Buy this first: it\'s one of the two cheapest Pix items and gets you started.'},
+ {tier:'easy',slot:'Ring',side:'R',name:"Cutthroat's Signet",q:'r',il:65,link:FDB+'272408',time:'2–4 days of dungeons',group:'5-player dungeons',cost:'75 Reals',
+  steps:[REALS(75),PIX,'<span class="h">Buy Cutthroat\'s Signet</span>Talk to Pix and buy it for 75 Reals.']},
+ {tier:'easy',slot:'Ranged',side:'L',name:"Satyr's Bow",q:'r',il:58,link:FDB+'18323',time:'About 30 minutes per run',group:'5-player dungeon',cost:'Free (roll for it)',
+  steps:['<span class="h">Fly to Feralas</span>Alliance: fly to Feathermoon Stronghold. Horde: fly to Camp Mojache, which is right next to Dire Maul.',
+  '<span class="h">Ride to Dire Maul</span>It\'s the big ruined city in the middle of Feralas, at about <b>59, 44</b>. Summon your group at the Meeting Stone.',
+  '<span class="h">Enter Dire Maul East</span>From the courtyard, take the <b>East</b> wing portal (Warpwood Quarter). East needs no key.',
+  '<span class="h">Kill Zevrim Thornhoof</span>A satyr boss in East. He\'s early in the wing, so a quick run can stop after him.',
+  '<span class="h">Roll Need on the bow</span>It\'s Bind on Pickup, so you have to win the roll.'],
+  tip:'Grab the Reals from every boss you kill on the way. While in Dire Maul, also loot any warrior book (Codex of Defense) you see, for the Royal Seal.'},
+ {tier:'medium',slot:'Waist',side:'R',name:"Valiant's Waistguard",q:'e',il:60,link:FDB+'272403',time:'About a week of dungeons',group:'5-player dungeons',cost:'About 100 Reals',
+  steps:[REALS(100),PIX,'<span class="h">Buy Valiant\'s Waistguard</span>The warrior epic belt. Guides list the epic belts at 100 Reals. Confirm the price at Pix.']},
+ {tier:'medium',slot:'Trinket',side:'R',name:'Adaptive Combat Assistant',q:'r',il:65,link:FDB+'272437',time:'About a week of dungeons',group:'5-player dungeons',cost:'125 Reals',
+  steps:[REALS(125),PIX,'<span class="h">Buy Adaptive Combat Assistant</span>Talk to Pix and buy it for 125 Reals. It\'s the most expensive item on the list, so it\'s last in the Reals order.']},
+ {tier:'medium',slot:'Neck',side:'L',name:"Horn of Ve'han",q:'r',il:61,link:FDB+'275736',time:'A long questing session',group:'Solo, plus a group for 2 elite quests',cost:'Free',
+  steps:['<span class="h">Bind your Hearthstone in Everlook</span>Fly to Everlook in Winterspring and set your home at the inn (Innkeeper Vizzie).',
+  '<span class="h">Ride into Mount Hyjal</span>Ride south through Winterspring to <b>Darkwhisper Gorge</b> at its southern end. The gorge leads up into Mount Hyjal.',
+  '<span class="h">Meet Ketharas at the Hermit\'s Abode</span>Just inside the zone, head south-west to the hermit <b>Ketharas</b>. Do his early quests and grab the <b>Tainted Foothills</b> flight path from Bluebell at the ancients\' outpost.',
+  '<span class="h">Start the "Dying God" story</span>Find <b>Velician</b> on the slope west of Felblood Scar. Take "The Dying God", hand it to the Curious Crow, then take "An Oldstone But An Old Friend" back to Ketharas.',
+  '<span class="h">Moonglade trip</span>Ketharas sends you to <b>Dendrite Starblaze</b> in Moonglade (Nighthaven). Do "The Ancient, Orokai" and "Stolen Power", then bring "The Pact" back to Ketharas.',
+  '<span class="h">Unlock the 3 quests Ketharas needs</span>He only offers the staff quest after you turn in these three:<br>• <b>Stolen Life</b>: from Marrosis at Mourning\'s Rest. Loot a Drop of Stolen Life from Fleshflay Raveners.<br>• <b>A Bit of the Sky</b>: from Skylord Omnuron at the Shrine of Aviana.<br>• <b>Ashes of the Legion Ascent</b>: from Renalard in Dae\'gun, the demon-held ruin north of the Cradle.<br>Follow the zone\'s quest flow to reach each of them. Mourning\'s Rest unlocks through the Curious Crow, then Jereman.',
+  '<span class="h">Take "The Staff of the Mountain"</span>Turn all three in to Ketharas, then accept <b>The Staff of the Mountain</b>.',
+  '<span class="h">Bring the staff to Tiala Whitemane</span>Fly to the <b>Summit of Eternity</b>, the druid camp. Tiala is indoors next to Thisalee Crow. Set your hearth here at Sebelia.',
+  '<span class="h">"Paying Back the Pact" (group recommended)</span>On the Blackthorne camps north-east of the Summit, use the staff on 10 Pact members to remove their wards, then kill them. Elites are mixed in, so bring a friend or two.',
+  '<span class="h">"Ve\'han\'s Fall" (group needed)</span>Use the staff on <b>Ve\'han Talongrasp</b> (level 60 elite) in the middle of the camps to strip his power, then kill him. Get 2–3 players for this.',
+  '<span class="h">"Work Well Done"</span>Return to <b>Ketharas</b> and choose <b>Horn of Ve\'han</b> from the three rewards.'],
+  tip:'This is a big zone storyline (around 100 quests). Doing it all also levels your Guardians of Hyjal reputation. The <b>Polestar</b> addon has a full Mount Hyjal route if you want an in-game arrow.'},
+ {tier:'hard',slot:'Trinket',side:'R',name:"Royal Seal of Eldre'Thalas",q:'r',il:62,link:FDB+'18466',time:'Several Dire Maul runs',group:'5-player dungeon',cost:'Free (rare book)',
+  steps:['<span class="h">Get the book "Codex of Defense"</span>A warrior-only book that drops at random in Dire Maul. It may also show up on the Auction House.',
+  '<span class="h">Go to Dire Maul West</span>Feralas, Dire Maul at about <b>59, 44</b>. Enter the <b>West</b> wing (Capital Gardens).',
+  '<span class="h">Reach the Athenaeum (the library)</span>The Shen\'dralar library is deep in Dire Maul West. Clear the wing with your group to reach it.',
+  '<span class="h">Turn in "Codex of Defense"</span>Hand the book to the Shen\'dralar in the library and choose the <b>warrior</b> Royal Seal (+30 shield block value).'],
+  warn:'<b>From original Classic:</b> this turn-in used to also need 1 Pristine Black Diamond, 4 Large Brilliant Shards and 2 Frayed Abomination Stitching. Forever\'s data only lists the book, but bring them to be safe.'},
+ {tier:'hard',slot:'Main hand',side:'L',name:'Ironfoe',q:'e',il:60,link:FDB+'11684',time:'Many 60–90 min runs',group:'5-player dungeon',cost:'Free (rare drop)',
+  steps:['<span class="h">Fly to Blackrock Mountain</span>Alliance: fly to Thorium Point (Searing Gorge) or Morgan\'s Vigil (Burning Steppes). Horde: fly to Flame Crest (Burning Steppes) or Thorium Point.',
+  '<span class="h">Enter Blackrock Depths</span>Walk into the mountain, cross the chain bridges and head <b>down</b>. The Blackrock Depths portal is at the bottom (Blackrock Spire is up top).',
+  '<span class="h">Clear to the Emperor</span>Fight through to the Imperial Seat at the very end. Emperor Dagran Thaurissan is the last boss, with Princess Moira Bronzebeard beside him.',
+  '<span class="h">Roll Need on Ironfoe</span>It\'s a rare drop, so expect several clears.'],
+  tip:'Every full clear also gives about 10 Reals, so these runs feed the Pix items too. Enchant Ironfoe with Crusader once you have it.'},
+ {tier:'hard',slot:'Legs',side:'R',name:'Handcrafted Mastersmith Leggings',q:'r',il:60,link:FDB+'13498',time:'A few runs',group:'Group (Classic: up to 10)',cost:'Free (roll for it)',
+  steps:['<span class="h">Make sure someone has the UBRS key</span>One person in the group needs the <b>Seal of Ascension</b>. Its quest starts with Vaelan in Lower Blackrock Spire and uses rare LBRS boss drops. Guides say Forever still needs it.',
+  '<span class="h">Go up into Blackrock Spire</span>Same mountain as Blackrock Depths, but take the path <b>up</b> to the Blackrock Spire portal. Go up the ramp to the Upper Blackrock Spire door. The key holder opens it.',
+  '<span class="h">Kill Goraluk Anvilcrack</span>A blacksmith boss in UBRS. Clear to him with your group.',
+  '<span class="h">Roll Need on the leggings</span>Bind on Pickup.'],
+  tip:'Best set: talk to Awbee on this same run for the Chromatic chest quest (ledge overlooking the city, right after the arena). Broke boi set: Rend (wrists) and General Drakkisath (shield) are in the same UBRS run.'},
+ {tier:'veryhard',slot:'Off hand',side:'L',name:'The Immovable Object',q:'e',il:60,link:FDB+'19321',time:'Weeks of PvP',group:'Alterac Valley battleground',cost:'About 80g',
+  steps:['<span class="h">Queue Alterac Valley</span>At level 60, talk to an Alterac Valley battlemaster in your capital city, or queue from the PvP window.',
+  '<span class="h">Earn reputation to Exalted</span>Alliance: Stormpike Guard. Horde: Frostwolf Clan. You gain rep from winning, capturing towers and graveyards, killing the enemy general and captains, and AV turn-in quests.',
+  '<span class="h">Go to your AV vendor</span>Alliance: <b>Thanthaldis Snowgleam</b>, Alterac Mountains, <b>39.4, 81.7</b>. Horde: <b>Jekyll Flandring</b>, Alterac Mountains, <b>62.8, 59.3</b>.',
+  '<span class="h">Buy The Immovable Object</span>About 80g (79g 53s before reputation discount).'],
+  tip:'Don Julio\'s Band (next) comes from the same vendor. Save about 155g so you can buy both the moment you hit Exalted.'},
+ {tier:'veryhard',slot:'Ring',side:'R',name:"Don Julio's Band",q:'e',il:60,link:FDB+'19325',time:'Same grind as the shield',group:'Alterac Valley battleground',cost:'About 76g',
+  steps:['<span class="h">Reach Exalted in Alterac Valley</span>The same reputation as The Immovable Object.',
+  '<span class="h">Visit the same vendor</span>Thanthaldis Snowgleam (Alliance, 39.4, 81.7) or Jekyll Flandring (Horde, 62.8, 59.3), both in Alterac Mountains.',
+  '<span class="h">Buy Don Julio\'s Band</span>About 76g (75g 55s 55c).']},
+ {tier:'veryhard',slot:'Chest',side:'L',name:'Breastplate of the Chromatic Flight',q:'e',il:62,link:FDB+'12895',time:'Long chain plus a very rare drop',group:'Upper Blackrock Spire group',cost:'Materials',
+  steps:['<span class="h">Talk to Awbee in Upper Blackrock Spire</span>She\'s a blue dragon on a ledge overlooking the city, right after the arena. She gives you <b>Awbee\'s Scale</b> ("The Matron Protectorate").',
+  '<span class="h">Go to Mazthoril in Winterspring</span>Fly to Everlook and ride to the Mazthoril caves. Stand on a <b>blue (cobalt) rune</b> on the cave floor while holding the scale and you teleport to <b>Haleh</b>. Give her the scale.',
+  '<span class="h">"Wrath of the Blue Flight" (2 parts)</span>Talk to Haleh and accept her help.',
+  '<span class="h">"Catalogue of the Wayward"</span>Read the catalogue. In original Classic it\'s on the top floor of the ruined inn in Andorhal (Western Plaguelands), near Chromie.',
+  '<span class="h">Gather the materials</span><div class="mats"><span>1 Chromatic Carapace</span><span>10 Brilliant Chromatic Scale</span><span>10 Blood of Heroes</span><span>10 Frayed Abomination Stitching</span></div><b>Chromatic Carapace</b>: a very rare drop (players report about 0.1–0.8%) from Gyth in UBRS. <b>Brilliant Chromatic Scale</b>: Auction House. <b>Blood of Heroes</b>: glowing pickups on the ground in Eastern Plaguelands. <b>Frayed Abomination Stitching</b>: abominations in Eastern Plaguelands, Stratholme and Scholomance.',
+  '<span class="h">Turn in to Jeziba the \'Sculptor\'</span>Bring everything to Jeziba for "Breastplate of the Chromatic Flight". Use your quest log and map marker to find her.'],
+  warn:'<b>From original Classic:</b> the Awbee, Andorhal and Carapace details come from Classic players, not Forever data yet. The Carapace is the real wall: start the chain early so you\'re ready if it drops.'},
+ {sets:['budget'],tier:'easy',slot:'Shoulder',side:'L',name:'Spaulders of Containment',q:'r',il:52,link:FDB+'287022',time:'5 minutes if listed',group:'Solo',cost:'Auction House price',
+  steps:['<span class="h">Check the Auction House</span>These are <b>Bind on Equip</b>, so other players sell them. Search "Spaulders of Containment". They\'re mail, which warriors can wear (your sim picked them).',
+  '<span class="h">If none are listed: Alcaz Prison</span>A new Forever dungeon on Alcaz Island, off the coast of <b>Dustwallow Marsh</b>. Wowhead lists the spaulders as a drop there. No drop rate is known yet.'],
+  tip:'Cheapest upgrade in the set. Check the AH every day or two.'},
+ {sets:['budget'],tier:'easy',slot:'Ring',side:'R',name:"Zarmok's Plated Signet",q:'r',il:45,link:WH+'275000',time:'About 30 minutes',group:'Solo or a friend at 60',cost:'Free',
+  steps:['<span class="h">Go to Krol\'dok Stronghold in Riverglades</span>A new Forever dungeon in the <b>Riverglades</b> (Eastern Kingdoms), north of Sunnyglade. The entrance is a small cave west of the fortress gates at about <b>37.5, 37.2</b> (guides differ slightly).',
+  '<span class="h">Kill Twilight Commander Zarmok</span>He\'s the second boss. The ring is his drop.',
+  '<span class="h">Roll Need</span>It\'s a level 40 dungeon, so at 60 you can clear it fast. Repeat until it drops.'],
+  tip:'Low item level, but the shield block value suits a tank. An easy pickup while you farm Reals elsewhere.'},
+ {sets:['budget'],tier:'easy',slot:'Main hand',side:'L',name:'Thrash Blade',q:'r',il:53,link:FDB+'17705',time:'About 1 hour',group:'Solo or small group at 60',cost:'Free (quest reward)',
+  steps:['<span class="h">Pick up "Corruption of Earth and Seed" in Desolace</span>Alliance: <b>Keeper Marandis</b>, Nijel\'s Point, <b>63.8, 10.7</b>. Horde: <b>Selendra</b> near Shadowprey Village, <b>26.9, 77.7</b>.',
+  '<span class="h">Go to Maraudon</span>The centaur-guarded canyon on the west side of Desolace. Go in through the cave to the instance portal.',
+  '<span class="h">Kill Princess Theradras</span>The last boss, deep inside. Maraudon is level 45–52, so it\'s much easier at 60.',
+  '<span class="h">Turn in and choose Thrash Blade</span>Back to the same quest giver. Pick <b>Thrash Blade</b> from the rewards.'],
+  tip:'Enchant it with Crusader, same as the sim.'},
+ {sets:['budget'],tier:'medium',slot:'Hands',side:'R',name:'Reiver Claws',q:'r',il:61,link:FDB+'13162',time:'A few 45-min runs',group:'5-player dungeon',cost:'Free (roll for it)',
+  steps:['<span class="h">Fly to Blackrock Mountain</span>Fly to Thorium Point (Searing Gorge), or Morgan\'s Vigil / Flame Crest (Burning Steppes), and ride into the mountain.',
+  '<span class="h">Go UP to the Blackrock Spire portal</span>Lower Blackrock Spire (LBRS) needs <b>no key</b>.',
+  '<span class="h">Kill Overlord Wyrmthalak</span>The last boss of LBRS. ForeverDB players report about a 20% drop.',
+  '<span class="h">Roll Need</span>Also loot the Unadorned Seal of Ascension if it drops: it starts the UBRS key you need for the wrists and shield.']},
+ {sets:['budget'],tier:'medium',slot:'Chest',side:'L',name:'Ornate Adamantium Breastplate',q:'r',il:63,link:FDB+'15413',time:'An evening of questing',group:'Solo, plus a group for the last escort',cost:'Free (quest reward)',
+  steps:['<span class="h">Find Tirion Fordring in Eastern Plaguelands</span>His hut is on the far west edge of Eastern Plaguelands, at about <b>5.2, 35.6</b>.',
+  '<span class="h">Do his opening quests</span>"Demon Dogs" first, then "Redemption" (talk to Tirion).',
+  '<span class="h">"Of Forgotten Memories" and "Of Lost Honor"</span>Follow the quest text: both are short tasks in the Plaguelands.',
+  '<span class="h">"Of Love and Family" (2 parts)</span>One part sends you into <b>Stratholme</b> for a painting, so do it on a Strat run (the helm is there too).',
+  '<span class="h">"Find Myranda"</span>Myranda the Hag in Western Plaguelands, <b>50.8, 77.8</b>. Then "Scarlet Subterfuge".',
+  '<span class="h">"In Dreams" (elite, group)</span>Escort Taelan Fordring out of Hearthglen (Western Plaguelands). Bring 2–4 people.',
+  '<span class="h">Turn in and choose the breastplate</span>Pick <b>Ornate Adamantium Breastplate</b>.'],
+  warn:'<b>From original Classic:</b> the chain order comes from Classic quest data. Forever may have small changes, so read each quest\'s text as you go.'},
+ {sets:['budget'],tier:'hard',slot:'Head',side:'L',name:'Helm of the Executioner',q:'r',il:63,link:FDB+'22411',time:'Several 45–60 min runs',group:'5-player dungeon',cost:'Free (roll for it)',
+  steps:['<span class="h">Go to Stratholme</span>The ruined city in the far north of <b>Eastern Plaguelands</b>. Fly to Light\'s Hope Chapel and ride north-west.',
+  '<span class="h">Use the Service Entrance (Undead side)</span>Enter through the back gate on the east side of the city. That side leads to the Baron.',
+  '<span class="h">Kill Baron Rivendare</span>The last boss of the Undead side. ForeverDB players report about a 20% drop.',
+  '<span class="h">Roll Need</span>Do the Tirion "Of Love and Family" painting on the same trip if you\'re on that chain.'],
+  tip:'Each boss also gives a Real, so Strat runs push your Pix items along.'},
+ {sets:['budget'],tier:'hard',slot:'Wrist',side:'L',name:'Battleborn Armbraces',q:'r',il:63,link:FDB+'12936',time:'A few UBRS runs',group:'Group (UBRS)',cost:'Free (roll for it)',
+  steps:['<span class="h">Make sure someone has the UBRS key</span>One person needs the <b>Seal of Ascension</b> (quest from Vaelan in Lower Blackrock Spire).',
+  '<span class="h">Go into Upper Blackrock Spire</span>Blackrock Mountain → UP to the Blackrock Spire portal → up the ramp to the UBRS door.',
+  '<span class="h">Kill Warchief Rend Blackhand</span>He comes after the arena event. About a 20% drop.'],
+  tip:'Rend, Drakkisath (shield) and Goraluk (legs) are all in one UBRS clear. Three items per run.'},
+ {sets:['budget'],tier:'hard',slot:'Off hand',side:'L',name:'Draconian Deflector',q:'r',il:63,link:FDB+'12602',time:'A few UBRS runs',group:'Group (UBRS)',cost:'Free (roll for it)',
+  steps:['<span class="h">Same UBRS run as the wrists</span>Someone needs the Seal of Ascension.',
+  '<span class="h">Clear to General Drakkisath</span>The last boss of Upper Blackrock Spire. About a 25% drop.',
+  '<span class="h">Roll Need</span>Healers and other tanks may want it too, so agree on loot first.']},
+
+ HERO('Shoulder','L','Pauldrons of Heroism','r',65,226867,'25g',2,'T'),
+ HERO('Wrist','L','Wristguards of Heroism','r',65,226865,'25g',0),
+ HERO('Hands','R','Handguards of Heroism','e',55,226870,'50g',1,'T'),
+ HERO('Chest','L','Breastplate of Heroism','e',60,226862,'100g',3,'D'),
+ HERO('Hands','R','Gauntlets of Heroism','e',55,226861,'50g',1,'D'),
+ HERO('Head','L','Faceguard of Heroism','e',60,226869,'100g',3,'T'),
+ HERO('Waist','R','Waistguard of Heroism','r',65,226866,'25g',1,'T'),
+ HERO('Legs','R','Legguards of Heroism','r',66,226868,'50g',2,'T'),
+ HERO('Wrist','L','Bracers of Heroism','r',65,226863,'25g',0),
+ {tier:'easy',slot:'Back',side:'L',name:"Howler's Furs",q:'r',il:65,link:WH+'272414',time:'2–4 days of dungeons',group:'5-player dungeons',cost:'75 Reals',
+  steps:[REALS(75),PIX,'<span class="h">Buy Howler\'s Furs</span>The offensive version of the Stalwart Cloak, same price: 75 Reals.']},
+ {tier:'medium',slot:'Waist',side:'R',name:'Girdle of Extracted Answers',q:'r',il:53,link:WH+'276742',time:'A few runs',group:'5-player dungeon',cost:'Free (roll for it)',
+  steps:['<span class="h">Go to Alcaz Prison</span>A new Forever dungeon on Alcaz Island, off the coast of <b>Dustwallow Marsh</b>.',
+  '<span class="h">Kill The Questioner</span>Wowhead players report about a 30% drop.',
+  '<span class="h">Roll Need</span>Bind on Pickup.']},
+ {tier:'medium',slot:'Trinket',side:'R',name:'Heart of Wyrmthalak',q:'r',il:61,link:WH+'22321',time:'A few 45-min runs',group:'5-player dungeon',cost:'Free (roll for it)',
+  steps:['<span class="h">Go to Lower Blackrock Spire</span>Blackrock Mountain → UP to the Blackrock Spire portal. LBRS needs <b>no key</b>.',
+  '<span class="h">Kill Overlord Wyrmthalak</span>The last boss. About a 15% drop. He also drops Reiver Claws.']},
+ {tier:'medium',slot:'Feet',side:'R',name:'Grimy Metal Boots',q:'r',il:63,link:WH+'18521',time:'A few runs',group:'5-player dungeon',cost:'Free (roll for it)',
+  steps:['<span class="h">Get into Dire Maul North</span>Dire Maul in Feralas (about 59, 45). North (Gordok Commons) needs the <b>Crescent Key</b>, from Pusillin in Dire Maul East.',
+  '<span class="h">Kill King Gordok</span>The last boss of North. About a 24% drop.',
+  '<span class="h">Roll Need</span>Bind on Pickup.']},
+ {tier:'medium',slot:'Ring',side:'R',name:'Ouroboros Ring',q:'r',il:62,link:WH+'260216',time:'One Blackmaw Hold clear',group:'5-player dungeon',cost:'Free (quest reward)',
+  steps:['<span class="h">Pick up "Blackmaw Reclamation"</span>The final quest of Blackmaw Hold (northern Azshara, entrance about <b>38.7, 33.4</b>). Follow the Blackmaw quests in and around the dungeon to unlock it.',
+  '<span class="h">Defeat Varrox Bleakhoof</span>The demon who leads the attack on the Blackmaw.',
+  '<span class="h">Turn in and choose Ouroboros Ring</span>']},
+ {tier:'medium',slot:'Ring',side:'R',name:'Venomvessel Ring',q:'r',il:63,link:WH+'280015',time:'A few runs',group:'5-player dungeon',cost:'Free (roll for it)',
+  steps:['<span class="h">Go to Shaper&#39;s Terrace in Un&#39;Goro Crater</span>A new level 58–60 Forever dungeon. Fly to Marshal&#39;s Refuge (or Cenarion Hold / Gadgetzan and ride in). Wowhead places the entrance at about <b>49.4, 76.1 on the Kalimdor map</b>.',
+  '<span class="h">Kill Venomridge</span>An elite beast inside. Wowhead players report about a <b>34%</b> drop.',
+  '<span class="h">Alliance bonus</span>Pick up "Panic at the Digsite" first: it asks you to kill Venomridge, 6 Ravasaur Matriarchs and 9 Ironhide Ravasaurs in Shaper&#39;s Terrace.'],
+  tip:'Shaper&#39;s Terrace bosses also give Tarnished Undermine Reals.'},
+ {tier:'hard',slot:'Main hand',side:'L',name:'Iceblade Hacker',q:'r',il:62,link:WH+'13952',time:'Several Scholomance runs',group:'5-player dungeon',cost:'Free (roll for it)',
+  steps:['<span class="h">Get the Scholomance key</span>Someone in the group needs the Skeleton Key (Classic rule: a quest chain in Western Plaguelands).',
+  '<span class="h">Go to Scholomance</span>On the island of Caer Darrow, south-east Western Plaguelands. Alliance: fly to Chillwind Camp. Horde: fly to the Bulwark.',
+  '<span class="h">Kill Ras Frostwhisper</span>About a 16% drop. He also drops the Intricately Runed Shield.']},
+ {tier:'hard',slot:'Off hand',side:'L',name:'Intricately Runed Shield',q:'r',il:62,link:WH+'18696',time:'Several Scholomance runs',group:'5-player dungeon',cost:'Free (roll for it)',
+  steps:['<span class="h">Same boss as the Iceblade Hacker</span>Ras Frostwhisper in Scholomance. About a 16% drop.',
+  '<span class="h">Roll Need</span>Other tanks want it too, so agree on loot first.']},
+ {tier:'hard',slot:'Main hand',side:'L',name:'Persuader',q:'e',il:63,link:WH+'22384',time:'Shopping',group:'Solo',cost:'Expensive',
+  steps:['<span class="h">Find a Blacksmith who can make it</span>Persuader is a Blacksmithing epic mace. Ask in Trade chat, or check the Auction House.',
+  '<span class="h">Bring the materials</span>The crafter will tell you the list. Expect it to be expensive.']},
+ {tier:'hard',slot:'Neck',side:'L',name:'Beads of Ogre Might',q:'r',il:63,link:WH+'22150',time:'Part of the Tier 0.5 chain',group:'Group for the dungeons',cost:'Free (quest reward)',
+  steps:['<span class="h">Start the Tier 0.5 chain</span>"Just Compensation" from <b>Deliana</b> in Ironforge (Alliance) or <b>Mokvar</b> in Orgrimmar (Horde).',
+  '<span class="h">Follow it to Anthion and Falrin</span>"In Search of Anthion" → "Dead Man\'s Plea" (Stratholme) → "Proof of Life" → "Anthion\'s Strange Request" → "Anthion\'s Old Friend".',
+  '<span class="h">"Falrin\'s Vendetta"</span>Collect <b>25 Ogre Warbeads</b> from ogres in Dire Maul or Blackrock Spire, then hand them to Falrin Treeshaper in the Athenaeum (Dire Maul West).',
+  '<span class="h">Choose Beads of Ogre Might</span>']},
+ {tier:'veryhard',slot:'Neck',side:'L',name:'Amulet of the Darkmoon',q:'e',il:65,link:WH+'19491',time:'Weeks (ticket grind)',group:'Solo',cost:'1,200 Darkmoon tickets',
+  steps:['<span class="h">Wait for the Darkmoon Faire</span>It moves between Elwynn Forest and Mulgore.',
+  '<span class="h">Collect 1,200 Darkmoon Prize Tickets</span>Hand in Faire turn-in items (crafted goods and dropped trinkets) to the Faire NPCs.',
+  '<span class="h">Buy it from Gelvas Grimegate</span>Wowhead lists it at 1,200 tickets.']},
+ {tier:'veryhard',slot:'Off hand',side:'L',name:'Blackskull Shield',q:'e',il:46,link:WH+'1169',time:'Luck',group:'Solo',cost:'Auction House price',
+  steps:['<span class="h">Check the Auction House</span>A very rare world drop (Wowhead shows chances like 1 in 1,800). Bind on Equip, so buying is the only sensible way.'],
+  tip:'Wowhead calls it the offensive pick. If it never shows up, use The Immovable Object or the Draconian Deflector.'},
+];
+
+// ===== Gourt's Gearing: every class and spec =====
+const CLS={warrior:['Warrior','#C79C6E'],paladin:['Paladin','#F58CBA'],hunter:['Hunter','#ABD473'],rogue:['Rogue','#FFF569'],priest:['Priest','#FFFFFF'],shaman:['Shaman','#2E8BFF'],mage:['Mage','#40C7EB'],warlock:['Warlock','#9482C9'],druid:['Druid','#FF7D0A']};
+const HAND=Object.fromEntries(ALL.map(h=>[h.name,h]));
+const D2T={1:'easy',2:'medium',3:'hard',4:'veryhard',5:'unconfirmed'};
+TIERS[TIERS.length-1]={id:'unconfirmed',name:'Raid items / not confirmed',dots:0,sub:'Raid drops Wowhead lists anyway, or items without a confirmed source. Use the next best item until they are available.'};
+const SLOTS_L=['Head','Neck','Shoulder','Back','Chest','Wrist','Main hand','Off hand','Ranged'],SLOTS_R=['Hands','Waist','Legs','Feet','Ring','Trinket','Quiver'];
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const KEY='wfg-done';let done=new Set();
+try{done=new Set(JSON.parse(localStorage.getItem(KEY)||'[]'))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify([...done]))}catch(e){}};
+const id=it=>it.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/-$/,'');
+const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}};
+let DATA=null,cls=ls('gg-cls')||'warrior',spec=ls('gg-spec')||'warrior/protection',set=ls('gg-set2')||'',filter='all',view=ls('wfg-view')||'walk',scat='all',onlyMine=false,I=[];
+const TYPE_TIME={drop:'Several runs',quest:'A quest chain',vendor:'One visit (plus currency)',craft:'Shopping',world:'Luck / AH',t05:'Tier 0.5 chain',raid:'Raid',unknown:'Unknown'};
+function itemFor(iid){
+ const g=DATA.items[iid];const h=HAND[g.name];
+ const side=SLOTS_L.includes(g.slot)?'L':'R';
+ if(h)return {...h,iid,slot:g.slot,side,g};
+ const steps=g.steps.map(s=>`<span class="h">${esc(s.h)}</span>${esc(s.t)}`);
+ const grp=g.src.type=='drop'?((g.src.drops[0]||{}).dungeon?'Dungeon group':'Group'):(g.src.type=='t05'?'Group for the dungeons':'Solo');
+ return {tier:D2T[g.diff]||'hard',slot:g.slot,side,name:g.name,q:g.q>=4?'e':'r',il:'',link:'https://www.wowhead.com/forever/item='+iid,time:TYPE_TIME[g.src.type]||'',group:grp,cost:g.cost,steps,tip:g.tips&&g.tips[0],warn:g.src.type=='raid'?`<b>Raid item:</b> ${esc(g.src.raid)} is raid content. Wowhead still lists it, so it is shown here for completeness.`:(g.src.type=='unknown'?'<b>Source not confirmed.</b> Check the item on Wowhead.':null),iid,g};
+}
+const TORD=['easy','medium','hard','veryhard','unconfirmed'];
+const SO=[...SLOTS_L,...SLOTS_R];
+function curSpec(){return DATA.specs.find(s=>s.key==spec)||DATA.specs[0]}
+function applySet(){
+ const sp=curSpec();spec=sp.key;cls=sp.cls;
+ if(!sp.sets.length){I=[];return}
+ if(!sp.sets.some(s=>s.key==set))set=sp.sets[0].key;
+ const st=sp.sets.find(s=>s.key==set);
+ I=st.items.filter(x=>DATA.items[x]).map(itemFor).map((it,ix)=>({...it,ix})).sort((a,b)=>TORD.indexOf(a.tier)-TORD.indexOf(b.tier)||a.ix-b.ix);
+ I.forEach((it,i)=>it.n=i+1);
+ ls('gg-cls',cls);ls('gg-spec',spec);ls('gg-set2',set);
+}
+const ord=(a,b,S)=>S.indexOf(a.slot)-S.indexOf(b.slot)||a.n-b.n;
+const slotBtn=it=>`<button class="slot${done.has(id(it))?' done':''}" type="button" data-go="${id(it)}"><span class="n">#${it.n}</span><span class="sl">${it.slot}</span><span class="nm ${it.q}">${esc(it.name)}</span><span class="ck"></span></button>`;
+const card=it=>{const t=TIERS.find(x=>x.id==it.tier),d=done.has(id(it));return `<article class="card${d?' done':''}" id="${id(it)}">
+ <div class="top"><div class="num">${it.n}</div><div class="tt"><h3 class="${it.q}">${esc(it.name)}</h3><div class="meta">${it.slot}${it.il?' · item level '+it.il:''} · <a href="${it.link}" target="_blank" rel="noopener">Wowhead</a> · <a href="https://www.foreverdb.app/en/forever/items/${it.iid}" target="_blank" rel="noopener">ForeverDB</a></div></div>
+ <label><input type="checkbox" data-id="${id(it)}"${d?' checked':''}> Got it</label></div>
+ <div class="facts"><span>Difficulty <b class="dots">${t.dots?'●'.repeat(t.dots)+'○'.repeat(4-t.dots):'?'}</b></span><span>Time <b>${esc(it.time)}</b></span><span>Group <b>${esc(it.group)}</b></span><span>Cost <b>${esc(it.cost)}</b></span></div>
+ ${d?`<details><summary>Show the steps again</summary><ol class="steps">${it.steps.map(s=>`<li><div>${s}</div></li>`).join('')}</ol></details>`:`<ol class="steps">${it.steps.map(s=>`<li><div>${s}</div></li>`).join('')}</ol>`}
+ ${it.tip?`<div class="tip"><b>Tip:</b> ${it.tip}</div>`:''}
+ ${it.warn?`<div class="warn">${it.warn}</div>`:''}
+</article>`};
+const SCATS=[{id:'all',name:'All sources'},{id:'dungeon',name:'Dungeon drops'},{id:'quest',name:'Quests & Tier 0.5'},{id:'vendor',name:'Vendors'},{id:'rep',name:'Reputation & PvP'},{id:'craft',name:'Crafted & Auction House'},{id:'raid',name:'Raid / other'}];
+function renderSources(){
+ const sp=curSpec();const ids=[...new Set(sp.sets.flatMap(s=>s.items))].filter(x=>DATA.items[x]);
+ const st=sp.sets.find(s=>s.key==set);const mineSet=new Set(st?st.items:[]);
+ const G={};
+ for(const x of ids){const g=DATA.items[x];if(onlyMine&&!mineSet.has(x))continue;const [c,n,w,dt]=g.group;const cc=(c=='other')?'raid':c;if(scat!='all'&&cc!=scat)continue;(G[cc+'|'+n]=G[cc+'|'+n]||{c:cc,n,w,rows:[]}).rows.push({x,dt})}
+ const groups=Object.values(G).sort((a,b)=>SCATS.findIndex(s=>s.id==a.c)-SCATS.findIndex(s=>s.id==b.c)||b.rows.length-a.rows.length);
+ if(!groups.length)return '<p class="lead">Nothing here. Try "All sources" or switch off the set filter.</p>';
+ return '<div class="srcgrid">'+groups.map(gr=>{const mine=gr.rows.filter(r=>mineSet.has(r.x)).length;return `<section class="sg${mine?' mine':''}"><h3>${esc(gr.n)}</h3>${gr.w?`<div class="wh">${esc(gr.w)}</div>`:''}${mine?`<div class="cnt">${mine} in your current set</div>`:''}
+ ${gr.rows.map(({x,dt})=>{const g=DATA.items[x];const nm={name:g.name};const dn=done.has(id(nm));return `<div class="srow${dn?' got':''}"><input type="checkbox" data-id="${id(nm)}"${dn?' checked':''} aria-label="Got ${esc(g.name)}"><div><a class="nm ${g.q>=4?'e':'r'}" href="#${id(nm)}" data-open="${x}">${esc(g.name)}</a> <span class="dt">· ${g.slot}</span><div class="dt">${esc(dt)}</div><div class="badges">${sp.sets.filter(s=>s.items.includes(x)).map(s=>`<span class="badge${s.key==set?' on':''}">${esc(s.name)}</span>`).join('')}</div></div></div>`}).join('')}</section>`}).join('')+'</div>';
+}
+function render(){
+ const sp=curSpec();
+ document.getElementById('clsBox').innerHTML=Object.entries(CLS).map(([k,[n,c]])=>`<button type="button" class="cbtn" data-cls="${k}" aria-pressed="${k==cls}" style="--cc:${c}">${n}</button>`).join('');
+ document.getElementById('specBox').innerHTML=DATA.specs.filter(s=>s.cls==cls).map(s=>`<button type="button" class="chip" data-spec="${s.key}" aria-pressed="${s.key==spec}">${esc(s.spec)} <span style="opacity:.7">· ${s.role}</span></button>`).join('');
+ document.getElementById('setsBox').innerHTML=sp.sets.length?sp.sets.map(s=>`<button type="button" class="setb" data-set="${s.key}" aria-pressed="${s.key==set}"><b>${esc(s.name)}</b><span>${esc((s.desc||'').slice(0,110))}${(s.desc||'').length>110?'…':''}</span></button>`).join(''):`<p>Wowhead's ${esc(sp.spec)} page has no gear list yet. Check back later.</p>`;
+ document.getElementById('specTitle').textContent=CLS[cls][0]+' · '+sp.spec;
+ document.getElementById('srcLink').href=sp.url;
+ document.getElementById('colL').innerHTML=I.filter(i=>i.side=='L').sort((a,b)=>ord(a,b,SLOTS_L)).map(slotBtn).join('');
+ document.getElementById('colR').innerHTML=I.filter(i=>i.side=='R').sort((a,b)=>ord(a,b,SLOTS_R)).map(slotBtn).join('');
+ const n=I.filter(i=>done.has(id(i))).length,tot=I.length||1;
+ document.getElementById('ringP').setAttribute('stroke-dashoffset',(314.16*(1-n/tot)).toFixed(1));
+ document.getElementById('ringT').textContent=n+'/'+I.length;
+ const left=I.filter(i=>!done.has(id(i)));
+ const reals=left.reduce((s,i)=>s+(/Real/.test(i.cost)?(parseInt(String(i.cost).replace(/\D/g,''))||0):0),0);
+ document.getElementById('totals').innerHTML=`<span>Reals still needed: <b>${reals?'~'+reals:'0'}</b></span><span>Items left: <b>${left.length}</b></span>`;
+ const nx=left[0];
+ document.getElementById('next').innerHTML=nx?`Up next: <a href="#${id(nx)}" data-go="${id(nx)}" style="color:#d2a2ff">#${nx.n} ${esc(nx.name)}</a>`:(I.length?'All done. BIG GOURT ENERGY.':'');
+ document.getElementById('views').innerHTML=[['walk','Step-by-step walkthrough'],['src','Where it drops']].map(([k,l])=>`<button type="button" class="vbtn" data-view="${k}" aria-pressed="${view==k}">${l}</button>`).join('');
+ document.getElementById('howto').hidden=(view=='src');
+ if(view=='src'){
+  document.getElementById('chips').innerHTML=SCATS.map(c=>`<button class="chip" type="button" data-sc="${c.id}" aria-pressed="${scat==c.id}">${c.name}</button>`).join('')+`<button class="chip tog" type="button" data-mine="1" aria-pressed="${onlyMine}">Only items in my set</button>`;
+  document.getElementById('main').innerHTML=renderSources();return;
+ }
+ document.getElementById('chips').innerHTML=[{id:'all',name:'All, easiest first'},...TIERS].map(t=>{const c=t.id=='all'?I.length:I.filter(i=>i.tier==t.id).length;return c||t.id=='all'?`<button class="chip" type="button" data-f="${t.id}" aria-pressed="${filter==t.id}">${t.name} (${c})</button>`:''}).join('');
+ document.getElementById('main').innerHTML=TIERS.filter(t=>filter=='all'||filter==t.id).map(t=>{const its=I.filter(i=>i.tier==t.id);if(!its.length)return '';const got=its.filter(i=>done.has(id(i))).length;
+  return `<section><div class="tier"><h2>${t.name}</h2><span>${t.sub} · ${got} of ${its.length} done</span></div><div class="list">${its.map(card).join('')}</div></section>`}).join('');
+}
+document.addEventListener('change',e=>{const k=e.target.dataset&&e.target.dataset.id;if(!k)return;e.target.checked?done.add(k):done.delete(k);save();const y=window.scrollY;render();window.scrollTo(0,y)});
+document.addEventListener('click',e=>{
+ const c=e.target.closest('[data-cls]');if(c){cls=c.dataset.cls;const first=DATA.specs.find(s=>s.cls==cls&&s.sets.length)||DATA.specs.find(s=>s.cls==cls);spec=first.key;set='';filter='all';applySet();render();return}
+ const sp=e.target.closest('[data-spec]');if(sp){spec=sp.dataset.spec;set='';filter='all';applySet();render();return}
+ const sb=e.target.closest('[data-set]');if(sb){set=sb.dataset.set;filter='all';applySet();render();return}
+ const vb=e.target.closest('[data-view]');if(vb){view=vb.dataset.view;ls('wfg-view',view);render();return}
+ const sc=e.target.closest('[data-sc]');if(sc){scat=sc.dataset.sc;render();return}
+ if(e.target.closest('[data-mine]')){onlyMine=!onlyMine;render();return}
+ const op=e.target.closest('[data-open]');if(op){e.preventDefault();const x=+op.dataset.open;const sp2=curSpec();const st=sp2.sets.find(s=>s.items.includes(x));if(st&&!sp2.sets.find(s=>s.key==set).items.includes(x)){set=st.key;applySet()}
+  view='walk';filter='all';render();const el=document.getElementById(id(DATA.items[x]));if(el)el.scrollIntoView({behavior:'smooth',block:'start'});return}
+ const f=e.target.closest('[data-f]');if(f){filter=f.dataset.f;render();return}
+ const g=e.target.closest('[data-go]');if(g){e.preventDefault();filter='all';view='walk';render();const el=document.getElementById(g.dataset.go);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});const inp=el.querySelector('input');if(inp)inp.focus({preventScroll:true})}return}
+ if(e.target.id=='reset'){if(confirmReset()){done.clear();save();render()}}
+});
+function confirmReset(){const b=document.getElementById('reset');if(b.dataset.arm){delete b.dataset.arm;b.textContent='Clear all ticks';return true}b.dataset.arm='1';b.textContent='Click again to clear';setTimeout(()=>{delete b.dataset.arm;b.textContent='Clear all ticks'},3000);return false}
+fetch('gg_data.json').then(r=>r.json()).then(d=>{DATA=d;
+ if(!DATA.specs.some(s=>s.key==spec))spec='warrior/protection';
+ // old single-page users: start on prot warrior with their old set
+ const old=ls('wfg-set');if(old&&!ls('gg-set2')){const m={bis:'sim-best-set',budget:'sim-broke-boi',wh_bal:'balanced',wh_off:'offensive',wh_def:'defensive',wh_bud:'budget'}[old];if(m){spec='warrior/protection';set='warrior/protection:'+m}}
+ applySet();render();
+}).catch(err=>{document.getElementById('main').innerHTML='<p class="lead">Could not load the gear data. Reload the page.</p>'});
+}
+</script>
+</body>
+</html>
